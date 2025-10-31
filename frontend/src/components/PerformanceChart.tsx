@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
+import type { PerformanceDataPoint, ChartDataPoint } from "../types";
 
 const COLORS = [
   "#3366CC", "#DC3912", "#FF9900", "#109618", "#990099",
@@ -8,7 +9,7 @@ const COLORS = [
   "#8B0707", "#651067", "#329262", "#5574A6", "#3B3EAC",
 ];
 
-type Props = { data: any[] };
+type Props = { data: PerformanceDataPoint[] };
 
 export default function PerformanceChart({ data }: Props) {
   const { chartData, seriesNames } = useMemo(() => {
@@ -17,7 +18,7 @@ export default function PerformanceChart({ data }: Props) {
     }
 
     const points = data
-      .map((item: any) => ({
+      .map((item: PerformanceDataPoint) => ({
         t: new Date(item.createdAt).getTime(),
         name: item.model?.name ?? item.modelId ?? "unknown",
         v: Number(item.netPortfolio),
@@ -34,7 +35,7 @@ export default function PerformanceChart({ data }: Props) {
     const medianGap = gaps.length ? gaps.sort((a, b) => a - b)[Math.floor(gaps.length / 2)] : 60_000;
     const tolerance = Math.min(5 * 60_000, Math.max(5_000, Math.floor((medianGap || 60_000) * 1.5)));
 
-    const rows: any[] = [];
+    const rows: ChartDataPoint[] = [];
     let bucketStart = points[0].t;
     let bucketEnd = points[0].t;
     let bucketRows: Record<string, number> = {};
@@ -62,6 +63,11 @@ export default function PerformanceChart({ data }: Props) {
 
   return (
     <div className="w-full h-[56vh] max-w-[1200px]">
+      <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="text-xs text-blue-900">
+          📈 <span className="font-medium">Portfolio Value Over Time:</span> This chart shows how the AI agent's total portfolio value (in USD) has changed. Each line represents a different AI model's trading performance.
+        </div>
+      </div>
       <LineChart
         data={chartData}
         width={1200}
@@ -76,9 +82,23 @@ export default function PerformanceChart({ data }: Props) {
           domain={["auto", "auto"]}
           tickFormatter={(v: number) => new Date(v).toLocaleTimeString()}
           tick={{ fontSize: 12 }}
+          label={{ value: 'Time', position: 'insideBottom', offset: -5, style: { fontSize: 12, fill: '#666' } }}
         />
-        <YAxis tick={{ fontSize: 12 }} domain={[600, 1500]} ticks={[600, 1000, 1500]} />
-        <Tooltip labelFormatter={(label: any) => new Date(label).toLocaleString()} />
+        <YAxis 
+          tick={{ fontSize: 12 }} 
+          domain={[600, 1500]} 
+          ticks={[600, 1000, 1500]}
+          label={{ value: 'Portfolio Value ($)', angle: -90, position: 'insideLeft', style: { fontSize: 12, fill: '#666' } }}
+        />
+        <Tooltip 
+          labelFormatter={(label: number) => new Date(label).toLocaleString()}
+          formatter={(value: unknown) => {
+            if (typeof value === 'number') {
+              return [`$${value.toFixed(2)}`, 'Portfolio Value'];
+            }
+            return [String(value), 'Portfolio Value'];
+          }}
+        />
         <Legend />
         {seriesNames.map((name, idx) => (
           <Line

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import PerformanceChart from "./components/PerformanceChart";
 import RecentInvocations from "./components/RecentInvocations";
+import SummaryStats from "./components/SummaryStats";
+import type { PerformanceDataPoint, Invocation } from "./types";
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -34,9 +36,9 @@ function ListSkeleton() {
 }
 
 export default function App() {
-  const [performanceData, setPerformanceData] = useState<any>(null);
+  const [performanceData, setPerformanceData] = useState<PerformanceDataPoint[] | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [invocationsData, setInvocationsData] = useState<any[] | null>(null);
+  const [invocationsData, setInvocationsData] = useState<Invocation[] | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -60,9 +62,27 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 text-gray-900 flex flex-col items-center px-6 py-10 font-[system-ui]">
-      <header className="w-full max-w-7xl mb-6">
-        <h1 className="text-4xl font-semibold tracking-tight text-gray-800">Performance Overview</h1>
-        <p className="text-sm text-gray-500 mt-1">Realtime portfolio & invocation snapshot</p>
+      <header className="w-full max-w-7xl mb-8">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl p-6 shadow-lg">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">🤖 AI Trading Agent Dashboard</h1>
+          <p className="text-blue-100 text-base">
+            Monitor your autonomous AI trading agent's performance, decisions, and portfolio value in real-time
+          </p>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+              <div className="font-semibold mb-1">📊 Live Performance</div>
+              <div className="text-blue-100 text-xs">Track portfolio value changes over time</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+              <div className="font-semibold mb-1">🧠 AI Decisions</div>
+              <div className="text-blue-100 text-xs">View reasoning behind each trade</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
+              <div className="font-semibold mb-1">📈 Trade History</div>
+              <div className="text-blue-100 text-xs">Complete log of all trading actions</div>
+            </div>
+          </div>
+        </div>
       </header>
 
       {loading && (
@@ -73,15 +93,21 @@ export default function App() {
       )}
 
       {!loading && (
-        <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-3 gap-8 transition-all duration-500">
-          <div className="lg:col-span-2 bg-white shadow-sm rounded-3xl p-6 border border-gray-100 hover:shadow-md transition-shadow">
-            <h2 className="text-xl font-medium mb-4 text-gray-700">Performance Metrics</h2>
-            <PerformanceChart data={performanceData} />
-          </div>
+        <div className="w-full max-w-7xl space-y-8">
+          {/* Summary Stats */}
+          <SummaryStats data={performanceData} />
+          
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 transition-all duration-500">
+            <div className="lg:col-span-2 bg-white shadow-sm rounded-3xl p-6 border border-gray-100 hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-medium mb-4 text-gray-700">Performance Metrics</h2>
+              <PerformanceChart data={performanceData} />
+            </div>
 
-          <div className="bg-white shadow-sm rounded-3xl p-6 border border-gray-100 hover:shadow-md transition-shadow">
-            <h2 className="text-xl font-medium mb-4 text-gray-700">Recent Invocations</h2>
-            <RecentInvocations data={invocationsData} />
+            <div className="bg-white shadow-sm rounded-3xl p-6 border border-gray-100 hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-medium mb-4 text-gray-700">Recent Invocations</h2>
+              <RecentInvocations data={invocationsData} />
+            </div>
           </div>
         </div>
       )}
