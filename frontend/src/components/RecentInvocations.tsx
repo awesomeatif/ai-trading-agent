@@ -8,7 +8,16 @@ type Props = {
 function formatMetadata(metadata: string): { symbol?: string; side?: string; price?: string; size?: string } {
   try {
     const parsed = JSON.parse(metadata);
-    return parsed;
+    // Validate that parsed is an object
+    if (typeof parsed !== 'object' || parsed === null) {
+      return {};
+    }
+    return {
+      symbol: typeof parsed.symbol === 'string' ? parsed.symbol : undefined,
+      side: typeof parsed.side === 'string' ? parsed.side : undefined,
+      price: typeof parsed.price === 'string' || typeof parsed.price === 'number' ? String(parsed.price) : undefined,
+      size: typeof parsed.size === 'string' || typeof parsed.size === 'number' ? String(parsed.size) : undefined,
+    };
   } catch {
     return {};
   }
@@ -44,7 +53,7 @@ export default function RecentInvocations({ data }: Props) {
     response: inv.response,
     toolCalls: (inv.toolCalls ?? []).map((tc) => ({
       type: tc.toolCallType,
-      createdAt: new Date(tc.createdAt),
+      createdAt: tc.createdAt instanceof Date ? tc.createdAt : new Date(tc.createdAt),
       metadata: tc.metadata,
     })),
   }));

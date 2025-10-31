@@ -92,7 +92,12 @@ export default function PerformanceChart({ data }: Props) {
         />
         <Tooltip 
           labelFormatter={(label: number) => new Date(label).toLocaleString()}
-          formatter={(value: number) => [`$${value.toFixed(2)}`, 'Portfolio Value']}
+          formatter={(value: unknown) => {
+            if (typeof value === 'number') {
+              return [`$${value.toFixed(2)}`, 'Portfolio Value'];
+            }
+            return [String(value), 'Portfolio Value'];
+          }}
         />
         <Legend />
         {seriesNames.map((name, idx) => (
