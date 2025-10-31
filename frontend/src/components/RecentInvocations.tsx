@@ -1,16 +1,32 @@
-
-
-type Invocation = {
-  id: string;
-  response: string;
-  createdAt: string | Date;
-  model?: { name?: string };
-  toolCalls?: { toolCallType: string; metadata: string; createdAt: string | Date }[];
-};
+import type { Invocation } from "../types";
 
 type Props = {
   data: Invocation[] | null;
 };
+
+// Helper function to parse and format metadata
+function formatMetadata(metadata: string): { symbol?: string; side?: string; price?: string; size?: string } {
+  try {
+    const parsed = JSON.parse(metadata);
+    return parsed;
+  } catch {
+    return {};
+  }
+}
+
+// Helper to get human-readable action description
+function getActionDescription(type: string, metadata: string): string {
+  const parsed = formatMetadata(metadata);
+  
+  if (type === 'CREATE_POSITION') {
+    const side = parsed.side || 'unknown';
+    const symbol = parsed.symbol || 'unknown asset';
+    return `${side === 'long' ? '📈 Opened Long Position' : '📉 Opened Short Position'} on ${symbol}`;
+  } else if (type === 'CLOSE_POSITION') {
+    return `✅ Closed Position`;
+  }
+  return type;
+}
 
 export default function RecentInvocations({ data }: Props) {
   if (!data) {
@@ -28,16 +44,19 @@ export default function RecentInvocations({ data }: Props) {
     response: inv.response,
     toolCalls: (inv.toolCalls ?? []).map((tc) => ({
       type: tc.toolCallType,
-      createdAt: new Date(tc.createdAt as any),
+      createdAt: new Date(tc.createdAt),
       metadata: tc.metadata,
     })),
   }));
 
   return (
     <div className="h-[1800px] overflow-y-auto px-6 py-4 bg-gradient-to-b from-[#f9fafb] to-[#f0f2f5] text-[#111827] backdrop-blur-xl">
-      <h2 className="text-2xl font-semibold mb-6 text-gray-900 tracking-tight">
+      <h2 className="text-2xl font-semibold mb-2 text-gray-900 tracking-tight">
         Recent Invocations
       </h2>
+      <p className="text-xs text-gray-600 mb-4 p-2 bg-blue-50 rounded-lg border border-blue-200">
+        🤖 <span className="font-medium">AI Decision Log:</span> Each entry shows when the AI agent was invoked, what trading actions it took, and its reasoning.
+      </p>
 
       <div className="flex flex-col gap-6">
         {items.map((it) => (
@@ -62,36 +81,84 @@ export default function RecentInvocations({ data }: Props) {
             <div className="px-5 pb-5 border-t border-gray-100">
               {/* Tool Calls */}
               {it.toolCalls && it.toolCalls.length > 0 && (
-                <div className="mb-4">
-                  <div className="font-semibold text-gray-800 mb-2">Tool Calls</div>
+                <div className="mb-4 mt-3">
+                  <div className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <span>🔧 Trading Actions</span>
+                    <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {it.toolCalls.length}
+                    </span>
+                  </div>
                   <div className="flex flex-col gap-3">
-                    {it.toolCalls.map((tc, idx) => (
-                      <div
-                        key={idx}
-                        className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 shadow-sm"
-                      >
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-700">
-                            {tc.type}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {tc.createdAt.toLocaleString()}
-                          </span>
+                    {it.toolCalls.map((tc, idx) => {
+                      const parsed = formatMetadata(tc.metadata);
+                      const actionDesc = getActionDescription(tc.type, tc.metadata);
+                      
+                      return (
+                        <div
+                          key={idx}
+                          className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 shadow-sm"
+                        >
+                          <div className="flex justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-800">
+                              {actionDesc}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {tc.createdAt.toLocaleTimeString()}
+                            </span>
+                          </div>
+                          
+                          {parsed.symbol && (
+                            <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+                              <div className="bg-white px-2 py-1 rounded border border-gray-200">
+                                <span className="text-gray-500">Symbol:</span>{" "}
+                                <span className="font-medium text-gray-800">{parsed.symbol}</span>
+                              </div>
+                              {parsed.side && (
+                                <div className="bg-white px-2 py-1 rounded border border-gray-200">
+                                  <span className="text-gray-500">Side:</span>{" "}
+                                  <span className={`font-medium ${parsed.side === 'long' ? 'text-green-700' : 'text-red-700'}`}>
+                                    {parsed.side}
+                                  </span>
+                                </div>
+                              )}
+                              {parsed.price && (
+                                <div className="bg-white px-2 py-1 rounded border border-gray-200">
+                                  <span className="text-gray-500">Price:</span>{" "}
+                                  <span className="font-medium text-gray-800">${parsed.price}</span>
+                                </div>
+                              )}
+                              {parsed.size && (
+                                <div className="bg-white px-2 py-1 rounded border border-gray-200">
+                                  <span className="text-gray-500">Size:</span>{" "}
+                                  <span className="font-medium text-gray-800">{parsed.size}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          <details className="text-xs">
+                            <summary className="cursor-pointer text-gray-500 hover:text-gray-700">
+                              View raw metadata
+                            </summary>
+                            <pre className="mt-2 text-[11px] text-gray-600 font-mono whitespace-pre-wrap leading-snug bg-white p-2 rounded border border-gray-200">
+                              {tc.metadata}
+                            </pre>
+                          </details>
                         </div>
-                        <pre className="text-[13px] text-gray-700 font-mono whitespace-pre-wrap leading-snug bg-transparent">
-                          {tc.metadata}
-                        </pre>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {/* Response */}
-              <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 shadow-sm">
-                <pre className="text-[13px] text-gray-700 font-mono whitespace-pre-wrap leading-snug">
-                  {it.response}
-                </pre>
+              <div>
+                <div className="font-semibold text-gray-800 mb-2">💭 AI Reasoning</div>
+                <div className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 shadow-sm">
+                  <pre className="text-[13px] text-gray-700 font-mono whitespace-pre-wrap leading-snug">
+                    {it.response}
+                  </pre>
+                </div>
               </div>
             </div>
           </details>
